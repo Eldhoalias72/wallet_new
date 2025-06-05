@@ -13,6 +13,8 @@ class Partner(Base):
     partner_ph_no = Column(Integer)
     partner_address = Column(String)
     is_active = Column(Boolean, default=True)
+    commission_rate = Column(Float)
+    commission_type = Column(String)
     onboarding_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -79,7 +81,7 @@ class Plan(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    cost = Column(Float)
+    value = Column(Float)
 
     features = relationship("PlanFeature", back_populates="plan")
     subscriptions = relationship("Subscription", back_populates="plan")
@@ -110,10 +112,6 @@ class PlanFeature(Base):
     feature_catagory = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    is_deductable = Column(Boolean, default=False)
-    quantity = Column(Integer)
-    value = Column(Float)
-
     plan = relationship("Plan", back_populates="features")
 
 
@@ -123,8 +121,6 @@ class PartnerTransaction(Base):
     partner_transaction_id = Column(Integer, primary_key=True, index=True)
     parnter_id = Column(Integer, ForeignKey("partner.partner_id"))
     transaction_id = Column(Integer, ForeignKey("wallet_transaction.transaction_id"))
-    commission_rate = Column(Float)
-    commission_type = Column(String)
     is_active = Column(Boolean, default=True)
     commission_amount = Column(Float)
     transaction_date = Column(DateTime)
