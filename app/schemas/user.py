@@ -44,7 +44,7 @@ class PlanCreate(BaseModel):
     plan_amount: float
     duration_in_days: int
     is_active: bool = True
-    cost: float
+    token: float
 
 class PlanFeatureCreate(BaseModel):
     plan_id: int
@@ -52,9 +52,7 @@ class PlanFeatureCreate(BaseModel):
     feature_description: str
     feature_catagory: str
     is_active: bool = True
-    is_deductable: bool
-    quantity: int
-    value: float
+
 
 class PartnerTransactionCreate(BaseModel):
     parnter_id: int

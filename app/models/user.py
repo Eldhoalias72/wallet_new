@@ -81,7 +81,7 @@ class Plan(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    value = Column(Float)
+    token = Column(Float)
 
     features = relationship("PlanFeature", back_populates="plan")
     subscriptions = relationship("Subscription", back_populates="plan")
