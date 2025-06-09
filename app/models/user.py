@@ -119,7 +119,7 @@ class PartnerTransaction(Base):
     __tablename__ = "partner_transaction"
 
     partner_transaction_id = Column(Integer, primary_key=True, index=True)
-    parnter_id = Column(Integer, ForeignKey("partner.partner_id"))
+    partner_id = Column(Integer, ForeignKey("partner.partner_id"))
     transaction_id = Column(Integer, ForeignKey("wallet_transaction.transaction_id"))
     is_active = Column(Boolean, default=True)
     commission_amount = Column(Float)
