@@ -93,7 +93,7 @@ class Subscription(Base):
     subscription_id = Column(Integer, primary_key=True, index=True)
     wallet_id = Column(Integer, ForeignKey("wallet.wallet_id"))
     plan_id = Column(Integer, ForeignKey("plan.plan_id"))
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     is_billed = Column(Boolean, default=False)

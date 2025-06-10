@@ -1,8 +1,8 @@
-"""add wallet stored procedures
+"""transaction_update
 
-Revision ID: 9d2e3f4a5b6c
-Revises: 8ca19c2a2135
-Create Date: 2025-06-05 14:30:00.000000
+Revision ID: 487d269c55d6
+Revises: 3b3fc365bb30
+Create Date: 2025-06-10 14:44:58.739078
 
 """
 from typing import Sequence, Union
@@ -12,22 +12,15 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9d2e3f4a5b6c'
-down_revision: Union[str, None] = '8ca19c2a2135'
+revision: str = '487d269c55d6'
+down_revision: Union[str, None] = '3b3fc365bb30'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Add wallet transaction stored procedures."""
-    
-    # Drop existing functions if they exist
+    """Upgrade schema."""
     op.execute("DROP FUNCTION IF EXISTS process_wallet_transaction(INTEGER, VARCHAR, FLOAT, VARCHAR, VARCHAR, VARCHAR);")
-    op.execute("DROP FUNCTION IF EXISTS wallet_credit_transaction(INTEGER, FLOAT, VARCHAR, VARCHAR, VARCHAR);")
-    op.execute("DROP FUNCTION IF EXISTS wallet_debit_transaction(INTEGER, FLOAT, VARCHAR, VARCHAR, VARCHAR);")
-    op.execute("DROP FUNCTION IF EXISTS get_wallet_balance(INTEGER);")
-    
-    # Create the main wallet transaction processing function
     op.execute("""
     CREATE OR REPLACE FUNCTION process_wallet_transaction(
         p_wallet_id INTEGER,
@@ -65,8 +58,8 @@ def upgrade() -> None:
         -- Process based on transaction type
         IF LOWER(p_transaction_type) = 'credit' THEN
             -- For credit, add to fixed balance
-            v_new_monthly_balance := v_monthly_balance;
-            v_new_fixed_balance := v_fixed_balance + p_amount;
+            v_new_monthly_balance := v_monthly_balance + p_amount;
+            v_new_fixed_balance := v_fixed_balance ;
             v_new_current_balance := v_new_monthly_balance + v_new_fixed_balance;
             
         ELSIF LOWER(p_transaction_type) = 'debit' THEN
@@ -130,33 +123,10 @@ def upgrade() -> None:
     END;
     $$ LANGUAGE plpgsql;
     """)
-    
-    # Create function to get wallet balance
-    op.execute("""
-    CREATE OR REPLACE FUNCTION get_wallet_balance(p_wallet_id INTEGER)
-    RETURNS TABLE(
-        wallet_id INTEGER,
-        monthly_balance FLOAT,
-        fixed_balance FLOAT,
-        total_balance FLOAT
-    ) AS $$
-    BEGIN
-        RETURN QUERY
-        SELECT 
-            w.wallet_id,
-            w.monthly_balance,
-            w.fixed_balance,
-            (w.monthly_balance + w.fixed_balance) as total_balance
-        FROM wallet w
-        WHERE w.wallet_id = p_wallet_id;
-    END;
-    $$ LANGUAGE plpgsql;
-    """)
+    pass
 
-    
 
 def downgrade() -> None:
-    """Remove wallet transaction stored procedures."""
+    """Downgrade schema."""
     op.execute("DROP FUNCTION IF EXISTS process_wallet_transaction(INTEGER, VARCHAR, FLOAT, VARCHAR, VARCHAR, VARCHAR);")
-    op.execute("DROP FUNCTION IF EXISTS get_wallet_balance(INTEGER);")
-    
+    pass
