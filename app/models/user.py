@@ -46,7 +46,6 @@ class Wallet(Base):
     monthly_balance = Column(Float, default=0.0)
     fixed_balance = Column(Float, default=0.0)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    token = Column(Integer)
 
     account = relationship("Account", back_populates="wallets")
     transactions = relationship("WalletTransaction", back_populates="wallet")
@@ -81,7 +80,7 @@ class Plan(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    token = Column(Float)
+    price = Column(Float)
 
     features = relationship("PlanFeature", back_populates="plan")
     subscriptions = relationship("Subscription", back_populates="plan")

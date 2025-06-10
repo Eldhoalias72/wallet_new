@@ -19,7 +19,6 @@ class WalletCreate(BaseModel):
     account_id: int
     monthly_balance: float
     fixed_balance: float
-    token: int
 
 class WalletTransactionCreate(BaseModel):
     wallet_id: int
@@ -44,7 +43,7 @@ class PlanCreate(BaseModel):
     plan_amount: float
     duration_in_days: int
     is_active: bool = True
-    token: float
+    price: float
 
 class PlanFeatureCreate(BaseModel):
     plan_id: int
