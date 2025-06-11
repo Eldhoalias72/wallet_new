@@ -33,6 +33,7 @@ class WalletTransactionCreate(BaseModel):
 class SubscriptionCreate(BaseModel):
     wallet_id: int
     plan_id: int
+    subscription_type: str
     is_active: bool = False
     start_time: datetime
     end_time: datetime

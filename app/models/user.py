@@ -96,6 +96,7 @@ class Subscription(Base):
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     is_billed = Column(Boolean, default=False)
+    subscription_type = Column(String)
 
     wallet = relationship("Wallet", back_populates="subscriptions")
     plan = relationship("Plan", back_populates="subscriptions")
