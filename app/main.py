@@ -9,7 +9,8 @@ from app.api import (
     plan,
     plan_feature,
     partner_transaction,
-    settlement
+    settlement,
+    payment
 )
 
 app = FastAPI()
@@ -24,3 +25,4 @@ app.include_router(plan.router)
 app.include_router(plan_feature.router)
 app.include_router(partner_transaction.router)
 app.include_router(settlement.router)
+app.include_router(payment.router)
