@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from app.schemas.user import WalletTransactionCreate
 from app.models.user import WalletTransaction
@@ -6,8 +6,21 @@ from app.database import get_db
 from app.services.wallet_service import WalletService
 from pydantic import BaseModel, validator
 from typing import Optional
-
+import os
+import razorpay
+import hmac
+import hashlib
+from dotenv import load_dotenv
 router = APIRouter(prefix="/wallet_transaction", tags=["WalletTransaction"])
+
+
+load_dotenv()
+
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+
+# Razorpay client
+razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET))
 
 class WalletTransactionRequest(BaseModel):
     wallet_id: int
@@ -31,14 +44,7 @@ class WalletTransactionRequest(BaseModel):
 
 @router.post("/")
 def process_wallet_transaction(request: WalletTransactionRequest, db: Session = Depends(get_db)):
-    """
-    Process wallet transaction with automatic balance management.
-    
-    Business Rules:
-    - Credit: Adds amount to fixed_balance
-    - Debit: Deducts from monthly_balance first, then fixed_balance
-    - All balance changes are automatically computed and stored
-    """
+
     result = WalletService.process_transaction(
         db=db,
         wallet_id=request.wallet_id,
@@ -100,3 +106,78 @@ def get_wallet_transactions(wallet_id: int, db: Session = Depends(get_db)):
             for txn in transactions
         ]
     }
+class RazorpayOrderRequest(BaseModel):
+    wallet_id: int
+    amount: float  # in rupees (will be converted to paise on backend)
+
+@router.post("/create_order")
+def create_razorpay_order(request: RazorpayOrderRequest):
+    """
+    Create Razorpay order and return order_id, amount, key_id, etc.
+    """
+    try:
+        amount_paise = int(request.amount * 100)
+
+        razorpay_order = razorpay_client.order.create({
+            "amount": amount_paise,
+            "currency": "INR",
+            "payment_capture": 1
+        })
+
+        return {
+            "key_id": RAZORPAY_KEY_ID,
+            "order_id": razorpay_order["id"],
+            "amount": amount_paise,
+            "currency": "INR",
+            "wallet_id": request.wallet_id,
+            "input_amount": request.amount
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create Razorpay order: {str(e)}")
+
+class RazorpayCreditRequest(BaseModel):
+    razorpay_payment_id: str
+    razorpay_order_id: str
+    razorpay_signature: str
+    wallet_id: int
+    amount: float  # original amount entered by user
+
+
+@router.post("/verify_and_credit")
+def verify_and_credit_via_razorpay(request: RazorpayCreditRequest, db: Session = Depends(get_db)):
+    """
+    Verify Razorpay payment and credit wallet with amount * 10
+    """
+    try:
+        # Step 1: Verify signature
+        payload = f"{request.razorpay_order_id}|{request.razorpay_payment_id}"
+        expected_signature = hmac.new(
+            RAZORPAY_KEY_SECRET.encode(),
+            payload.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if expected_signature != request.razorpay_signature:
+            raise HTTPException(status_code=400, detail="Razorpay Signature Verification Failed")
+
+        # Step 2: Process Wallet Credit
+        result = WalletService.process_transaction(
+            db=db,
+            wallet_id=request.wallet_id,
+            transaction_type="credit",
+            amount=request.amount * 10,
+            source="razorpay",
+            remark="Credited via Razorpay payment",
+            additional_info=f"Payment ID: {request.razorpay_payment_id}"
+        )
+
+        if result["success"]:
+            return {
+                "message": "Wallet credited successfully after Razorpay payment",
+                "transaction_details": result
+            }
+        else:
+            raise HTTPException(status_code=500, detail=result["error"])
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

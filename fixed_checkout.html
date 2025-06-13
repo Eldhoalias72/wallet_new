@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wallet Top-Up</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <h2>Top-Up Wallet</h2>
+
+  <label for="amount">Enter amount (₹):</label>
+  <input type="number" id="amount" min="1" required />
+  <br><br>
+  <button onclick="startPayment()">Pay Now</button>
+
+  <script>
+    async function startPayment() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+
+      const orderRes = await fetch("http://localhost:8000/wallet_transaction/create_order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: 7, amount: amount })
+      });
+
+      const orderData = await orderRes.json();
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.order_id,
+        handler: function (response) {
+          fetch("http://localhost:8000/wallet_transaction/verify_and_credit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              wallet_id: orderData.wallet_id,
+              amount: orderData.input_amount
+            })
+          })
+          .then(res => res.json())
+          .then(data => alert("Transaction Success: " + JSON.stringify(data)))
+          .catch(err => alert("Transaction Failed: " + err));
+        }
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+  </script>
+</body>
+</html>

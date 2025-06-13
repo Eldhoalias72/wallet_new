@@ -16,24 +16,7 @@ class WalletService:
         remark: Optional[str] = None,
         additional_info: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Process a wallet transaction using stored procedures.
-        
-        Credit transactions: Add amount to fixed_balance
-        Debit transactions: Deduct from monthly_balance first, then fixed_balance
-        
-        Args:
-            db: Database session
-            wallet_id: ID of the wallet
-            transaction_type: 'credit' or 'debit'
-            amount: Transaction amount
-            source: Source of the transaction
-            remark: Optional remark
-            additional_info: Optional additional information
-            
-        Returns:
-            Dictionary with transaction details
-        """
+
         try:
             # Validate transaction type
             if transaction_type.lower() not in ['credit', 'debit']:
