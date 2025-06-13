@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Razorpay Test</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <h2>Subscribe</h2>
+  <button onclick="startPayment()">Pay Now</button>
+
+  <script>
+    async function startPayment() {
+      const sub = {
+        wallet_id: 7,
+        plan_id: 4,
+        subscription_type: "renew",
+        start_time: new Date().toISOString(),
+        end_time: new Date(new Date().getTime() + 30*24*60*60*1000).toISOString()
+      };
+
+      const orderRes = await fetch("http://localhost:8000/subscription/create_order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub)
+      });
+
+      const orderData = await orderRes.json();
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.order_id,
+        handler: function (response) {
+          fetch("http://localhost:8000/subscription/verify_and_subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              wallet_id: orderData.wallet_id,
+              plan_id: orderData.plan_id,
+              subscription_type: orderData.subscription_type
+            })
+          })
+          .then(res => res.json())
+          .then(data => alert("Subscription Result: " + JSON.stringify(data)))
+          .catch(err => alert("Error: " + err));
+        }
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+  </script>
+</body>
+</html>

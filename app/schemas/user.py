@@ -69,3 +69,4 @@ class SettlementCreate(BaseModel):
     settlement_status: str
     settlement_date: datetime
     settlement_amount: float
+

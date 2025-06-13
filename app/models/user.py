@@ -145,3 +145,4 @@ class Settlement(Base):
 
     partner = relationship("Partner", back_populates="settlements")
     partner_transaction = relationship("PartnerTransaction", back_populates="settlements")
+
