@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Razorpay</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <h2>Buy Plan (Plan ID: 2)</h2>
+  <button onclick="buyPlan()">Buy Plan</button>
+
+  <h2>Buy Tokens (₹100)</h2>
+  <button onclick="buyTokens()">Buy Tokens</button>
+
+  <script>
+    async function buyPlan() {
+      const res = await fetch('/payment/create-plan-order/?plan_id=2', {
+  method: 'POST'
+});
+
+      const data = await res.json();
+
+      const options = {
+        key: "rzp_test_96ZQjRTmWV6qZu", // ✅ Your Razorpay key
+        amount: data.amount,
+        currency: data.currency,
+        order_id: data.order_id,
+        handler: async function (response) {
+          const confirmRes = await fetch('/subscription/confirm/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              plan_id: 2,         // your selected plan
+              wallet_id: 2        // your test wallet ID
+            })
+          });
+
+          const result = await confirmRes.json();
+          alert(result.message || "Plan purchased and subscription activated!");
+        }
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+
+    async function buyTokens() {
+  const res = await fetch("http://127.0.0.1:8000/payment/create-token-order/?amount=100", {
+    method: "POST"
+  });
+  const data = await res.json();
+
+  const options = {
+    key: "rzp_test_96ZQjRTmWV6qZu",
+    amount: data.amount,
+    currency: data.currency,
+    order_id: data.order_id,
+    handler: async function (response) {
+      await fetch("http://127.0.0.1:8000/payment/confirm/token/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          wallet_id: 2,
+          amount: data.amount / 100
+        })
+      });
+      alert("Tokens purchased and added to wallet!");
+    }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+
+  </script>
+</body>
+</html>

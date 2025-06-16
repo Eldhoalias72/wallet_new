@@ -13,3 +13,6 @@ def create_wallet(wallet: WalletCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_wallet)
     return {"message": "Wallet created", "id": new_wallet.wallet_id}
+
+
+

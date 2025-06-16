@@ -1,74 +1,52 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import OperationalError, IntegrityError
-from app.schemas.user import SubscriptionCreate
-from app.database import get_db
-from app.services.subscription_service import SubscriptionService
-from typing import Dict, Any
-import logging
+from datetime import datetime, timedelta
+from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
+from app.database import get_db
+from app.models.user import Subscription, Plan, Wallet
+
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
 
-@router.post("/", response_model=Dict[str, Any])
-def create_subscription(sub: SubscriptionCreate, db: Session = Depends(get_db)):
-    try:
-        logger.info(f"Processing subscription: wallet_id={sub.wallet_id}, plan_id={sub.plan_id}, type={sub.subscription_type}")
+# Request schema for confirming subscription
+class ConfirmSubscription(BaseModel):
+    wallet_id: int
+    plan_id: int
 
-        # Validate input
-        if not sub.wallet_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="wallet_id is required"
-            )
-        
-        if sub.subscription_type.lower() == "new" and not sub.plan_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="plan_id is required for new subscriptions"
-            )
+@router.post("/confirm/")
+def confirm_subscription(data: ConfirmSubscription, db: Session = Depends(get_db)):
+    # Fetch wallet and plan
+    wallet = db.query(Wallet).filter(Wallet.wallet_id == data.wallet_id).first()
+    plan = db.query(Plan).filter(Plan.plan_id == data.plan_id).first()
 
-        result = SubscriptionService.handle_subscription(
-            db=db,
-            wallet_id=sub.wallet_id,
-            plan_id=sub.plan_id,
-            subscription_type=sub.subscription_type.lower()
-        )
+    if not wallet or not plan:
+        raise HTTPException(status_code=404, detail="Invalid wallet or plan")
 
-        logger.info(f"Subscription processed successfully: {result}")
-        return {
-            "success": True,
-            "message": "Subscription processed successfully",
-            "data": result
-        }
+    # Set subscription time
+    start_time = datetime.utcnow()
+    end_time = start_time + timedelta(days=plan.duration_in_days)
 
-    except ValueError as ve:
-        logger.error(f"Validation error: {str(ve)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(ve)
-        )
+    # Create subscription entry
+    subscription = Subscription(
+        wallet_id=wallet.wallet_id,
+        plan_id=plan.plan_id,
+        subscription_type="paid",
+        is_active=True,
+        is_billed=True,
+        start_time=start_time,
+        end_time=end_time
+    )
+    db.add(subscription)
 
-    except IntegrityError as ie:
-        logger.error(f"Database integrity error: {str(ie)}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Database constraint violation - check if subscription already exists or invalid references"
-        )
+    # Add plan_amount (tokens) to monthly_balance
+    wallet.monthly_balance += plan.plan_amount
+    wallet.updated_at = datetime.utcnow()
 
-    except OperationalError as oe:
-        logger.error(f"Database operational error: {str(oe)}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database operation failed"
-        )
+    db.commit()
+    db.refresh(subscription)
 
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error occurred"
-        )
+    return {
+        "message": "Subscription activated and tokens added",
+        "subscription_id": subscription.subscription_id,
+        "new_monthly_balance": wallet.monthly_balance
+    }
