@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+from sqlalchemy import text 
 
 from app.database import get_db
 from app.models.user import Subscription, Plan, Wallet
@@ -44,6 +45,12 @@ def confirm_subscription(data: ConfirmSubscription, db: Session = Depends(get_db
 
     db.commit()
     db.refresh(subscription)
+
+    db.execute(
+        text("CALL history(:sub_id)"),
+        {"sub_id": subscription.subscription_id}
+    )
+    db.commit()
 
     return {
         "message": "Subscription activated and tokens added",
