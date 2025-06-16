@@ -63,4 +63,5 @@ def upgrade():
     $$;
     """)
 
-op.execute("DROP PROCEDURE IF EXISTS history(INT);")
+def downgrade():
+    op.execute("DROP PROCEDURE IF EXISTS history(INT);")
