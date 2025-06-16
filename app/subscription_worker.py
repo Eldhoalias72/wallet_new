@@ -63,12 +63,18 @@ def callback(ch, method, properties, body):
         if subscription_id and feature_id:
             process_feature_usage(subscription_id, feature_id)
             ch.basic_ack(delivery_tag=method.delivery_tag)
+            
+
         else:
             print("❌ Invalid message format")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        
+        print("✅ Successfully processed feature_point deduction.\n")
+
     except Exception:
         print("❌ Failed to process message, requeuing...")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+        
 
 def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
