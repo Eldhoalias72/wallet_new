@@ -52,6 +52,7 @@ class PlanFeatureCreate(BaseModel):
     feature_description: str
     feature_catagory: str
     is_active: bool = True
+    points: int
 
 
 class PartnerTransactionCreate(BaseModel):

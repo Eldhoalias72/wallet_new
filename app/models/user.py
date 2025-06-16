@@ -113,6 +113,7 @@ class PlanFeature(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     plan = relationship("Plan", back_populates="features")
+    points = Column(Integer)
 
 
 class PartnerTransaction(Base):
