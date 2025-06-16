@@ -2,6 +2,10 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
+class FeatureUsageRequest(BaseModel):
+    subscription_id: int
+    feature_name: str
+
 class PartnerCreate(BaseModel):
     partner_name: str
     partner_email: EmailStr

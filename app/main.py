@@ -11,6 +11,7 @@ from app.api import (
     plan_feature,
     partner_transaction,
     settlement,
+    feature_usage
 )
 
 
@@ -26,7 +27,7 @@ app.include_router(plan.router)
 app.include_router(plan_feature.router)
 app.include_router(partner_transaction.router)
 app.include_router(settlement.router)
-
+app.include_router(feature_usage.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Or use specific domain for production
